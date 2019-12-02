@@ -19,6 +19,8 @@ ffmpeg -i ./testdata/traffic.mp4 -vf fps=30 ./testdata/traffic/img%04d.png
 Running a debug build (not using the `--release` flag) will dump the state of the filter at each frame to a file and will output additional debug information. Note that the image filenames need to be provided in order. Below commands should result in `test_tracking.mp4`.
 
 ```bash
-cargo run --release --example demo $(ls ./testdata/traffic/img0*.png) && ffmpeg -y -framerate 30 -i ./predicted_image_%4d.png -pix_fmt yuv420p test_tracking.mp4 && rm *.png
+cargo run --release --example demo $(ls ./testdata/traffic/img0*.png) &&\
+ffmpeg -y -framerate 30 -i ./predicted_image_%4d.png -pix_fmt yuv420p test_tracking.mp4 &&\
+rm *.png
 ```
 
