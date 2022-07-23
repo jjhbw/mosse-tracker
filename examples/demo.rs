@@ -8,9 +8,9 @@ use image::Rgba;
 use imageproc::drawing::{draw_cross_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
 use mosse::{MosseTrackerSettings, MultiMosseTracker};
-use rusttype::{FontCollection, Scale};
+use rusttype::{Font, Scale};
 use std::env;
-use time::PreciseTime;
+use std::time::Instant;
 
 fn main() {
     // Collect all elements in the iterator that contains the command line arguments
@@ -26,7 +26,7 @@ fn main() {
     let first = images.next().unwrap();
 
     // initialize a new model
-    let (width, height) = first.to_rgb().dimensions();
+    let (width, height) = first.to_rgb8().dimensions();
     let window_size = 64; //size of the tracking window
     let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
     let settings = MosseTrackerSettings {
@@ -42,25 +42,24 @@ fn main() {
 
     // coordinates of the target objects to track in the intial frame
     let target_coords = vec![
-        (143,766),
-        (232,653),
-        (291,731),
-        (1298,664),
+        (143, 766),
+        (232, 653),
+        (291, 731),
+        (1298, 664),
         (479, 642),
-        (574,629),
-        (666,627),
-        (762,609)
+        (574, 629),
+        (666, 627),
+        (762, 609),
     ];
 
     // Add all the targets  on the first image to the multitracker
-    let first_img = first.to_luma();
+    let first_img = first.to_luma8();
     for (i, coords) in target_coords.into_iter().enumerate() {
-        let start = PreciseTime::now();
+        let start = Instant::now();
         multi_tracker.add_target(i as u32, coords, &first_img);
-        let end = PreciseTime::now();
         println!(
             "Added object on initial frame to multi-tracker in {} ms",
-            start.to(end).num_milliseconds()
+            start.elapsed().as_millis()
         );
     }
 
@@ -69,23 +68,21 @@ fn main() {
         let img_id = format!("{:<04}", i + 1);
 
         // track the objects on the new frame
-        let start = PreciseTime::now();
-        let predictions = multi_tracker.track(&dyn_img.to_luma());
-        let end = PreciseTime::now();
+        let start = Instant::now();
+        let predictions = multi_tracker.track(&dyn_img.to_luma8());
 
         println!(
             "Processed sample image no. {} in {} ms. Active trackers: {}.",
             img_id,
-            start.to(end).num_milliseconds(),
+            start.elapsed().as_millis(),
             multi_tracker.size(),
         );
 
         let mut img_copy = dyn_img;
         for (obj_id, pred) in predictions.iter() {
-
             // color changes when psr is low
             let mut color = Rgba([125u8, 255u8, 0u8, 0u8]);
-            if pred.psr < psr_thresh{
+            if pred.psr < psr_thresh {
                 color = Rgba([255u8, 0u8, 0u8, 0u8])
             }
 
@@ -101,15 +98,13 @@ fn main() {
                 Rect::at(
                     pred.location.0.saturating_sub(window_size / 2) as i32,
                     pred.location.1.saturating_sub(window_size / 2) as i32,
-                ).of_size(window_size, window_size),
+                )
+                .of_size(window_size, window_size),
                 color,
             );
 
             let font_data = include_bytes!("./Arial.ttf");
-            let collection = FontCollection::from_bytes(font_data as &[u8]).unwrap();
-
-            // only succeeds if collection consists of one font
-            let font = collection.into_font().unwrap();
+            let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
 
             const FONT_SCALE: f32 = 10.0;
 
