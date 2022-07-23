@@ -3,7 +3,8 @@ extern crate imageproc;
 extern crate rustfft;
 
 use image::{imageops, GrayImage, ImageBuffer, Luma};
-use imageproc::affine::{affine, rotate_about_center, Affine2, Interpolation, translate};
+use imageproc::geometric_transformations::Projection;
+use imageproc::geometric_transformations::{rotate_about_center, warp, Interpolation};
 use rustfft::num_complex::Complex;
 use rustfft::num_traits::Zero;
 use rustfft::{FFTplanner, FFT};
@@ -32,11 +33,12 @@ use std::sync::Arc;
 // TODO: in general: remove allocating functions by reusing buffers where possible (such as self.prev's)
 
 fn preprocess(image: &GrayImage) -> Vec<f32> {
-    let mut prepped: Vec<f32> = image.pixels()
+    let mut prepped: Vec<f32> = image
+        .pixels()
         // convert the pixel to u8 and then to f32
         .map(|p| p[0] as f32)
         // add 1, and take the natural logarithm
-        .map(|p | (p+1.0).ln())
+        .map(|p| (p + 1.0).ln())
         .collect();
 
     // normalize to mean = 0 (subtract image-wide mean from each pixel)
@@ -165,8 +167,8 @@ pub struct MosseTracker {
     pub last_psr: f32,
 
     // thread-safe FFT objects containing precomputed parameters for this input data size.
-    fft: Arc<FFT<f32>>,
-    inv_fft: Arc<FFT<f32>>,
+    fft: Arc<dyn FFT<f32>>,
+    inv_fft: Arc<dyn FFT<f32>>,
 }
 
 pub struct MosseTrackerSettings {
@@ -258,45 +260,27 @@ impl MosseTracker {
             0.02, -0.02, 0.05, -0.05, 0.07, -0.07, 0.09, -0.09, 1.1, -1.1, 1.3, -1.3, 1.5, -1.5,
             2.0, -2.0,
         ]
-            .iter()
-            .map(|rad| {
-                // Rotate an image clockwise about its center by theta radians.
-                let training_frame = rotate_about_center(window, *rad, Interpolation::Nearest);
+        .iter()
+        .map(|rad| {
+            // Rotate an image clockwise about its center by theta radians.
+            let training_frame =
+                rotate_about_center(window, *rad, Interpolation::Nearest, Luma([0]));
 
-                #[cfg(debug_assertions)]
-                {
-                    training_frame
-                        .save(format!("training_frame_rotated_theta_{}.png", rad))
-                        .unwrap();
-                }
+            #[cfg(debug_assertions)]
+            {
+                training_frame
+                    .save(format!("training_frame_rotated_theta_{}.png", rad))
+                    .unwrap();
+            }
 
-                return training_frame;
-            });
+            return training_frame;
+        });
 
         // build an iterator that produces training frames that have been slightly scaled to various degrees ('zoomed')
-        let (center_x, center_y) = (self.window_size as i32 / 2, self.window_size as i32 / 2);
         let scaled_frames = [0.8, 0.9, 1.1, 1.2].into_iter().map(|scalefactor| {
-            // build the affine scaling matrix
-            // Note that the image is scaled with the top-left as the origin!
-            let scale_mat: Affine2 = Affine2::from_matrix_unchecked([
-                *scalefactor as f32,
-                0.0,
-                0.0,
-                0.0,
-                *scalefactor as f32,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-            ]);
+            let scale = Projection::scale(scalefactor, scalefactor);
 
-            // TODO: implement scaling about the CENTER of the image. 
-            
-            // We need to translate the image before and after scaling to simulate scaling with the center as the origin instead of top-left.
-            // Translate to origin, scale image, translate back.
-            // TODO: can be simplified by computing a single affine transformation matrix that handles all three operations?
-            let (t_x, t_y) = (center_x, center_y);
-            let scaled_training_frame = translate(&affine(&translate(window, (t_x, t_y) ), scale_mat, Interpolation::Nearest).unwrap(), (-t_x, -t_y));
+            let scaled_training_frame = warp(&window, &scale, Interpolation::Nearest, Luma([0]));
 
             #[cfg(debug_assertions)]
             {
@@ -312,9 +296,10 @@ impl MosseTracker {
         // Note that we add the initial, unperturbed training frame as first in line.
         let training_frames = std::iter::once(window)
             .cloned()
-            .chain(rotated_frames);
-            // TODO: scaling is not ready yet
-            // .chain(scaled_frames);
+            .chain(rotated_frames)
+            .chain(scaled_frames);
+        // TODO: scaling is not ready yet
+        // .chain(scaled_frames);
 
         let mut training_frame_count = 0;
         for training_frame in training_frames {
@@ -356,8 +341,12 @@ impl MosseTracker {
 
         // compute the filter by dividing Ai and Bi elementwise
         // note that we add a small quantity to avoid dividing by zero, which would yield NaN's.
-        self.filter = self.last_top.iter().zip(&self.last_bottom).map(|(a, b)| a / b + self.regularization).collect();
-
+        self.filter = self
+            .last_top
+            .iter()
+            .zip(&self.last_bottom)
+            .map(|(a, b)| a / b + self.regularization)
+            .collect();
 
         #[cfg(debug_assertions)]
         {
@@ -399,7 +388,8 @@ impl MosseTracker {
             .max_by(|a, b| {
                 // filtered (gi) is still complex at this point, we only care about the real part
                 a.1.re.partial_cmp(&b.1.re).unwrap_or(Ordering::Equal)
-            }).unwrap(); // we can unwrap the result of max_by(), as we are sure filtered.len() > 0
+            })
+            .unwrap(); // we can unwrap the result of max_by(), as we are sure filtered.len() > 0
 
         // convert the array index of the max to the coordinates in the window
         let max_coord_in_window = index_to_coords(self.window_size, maxind as u32);
@@ -536,7 +526,8 @@ fn window_crop(
             .min(input_frame.height() - window_height),
         window_width,
         window_height,
-    ).to_image();
+    )
+    .to_image();
 
     return window;
 }
@@ -647,7 +638,8 @@ mod tests {
             .max_by(|a, b| {
                 // filtered (gi) is still complex at this point, we only care about the real part
                 a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal)
-            }).unwrap();
+            })
+            .unwrap();
         assert_eq!(maxel, (4usize, &5.0f32));
     }
 
