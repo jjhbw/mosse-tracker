@@ -7,7 +7,7 @@ use imageproc::geometric_transformations::Projection;
 use imageproc::geometric_transformations::{rotate_about_center, warp, Interpolation};
 use rustfft::num_complex::Complex;
 use rustfft::num_traits::Zero;
-use rustfft::{FFTplanner, FFT};
+use rustfft::{Fft, FftPlanner};
 use std::cmp::Ordering;
 use std::f32;
 use std::sync::Arc;
@@ -167,8 +167,8 @@ pub struct MosseTracker {
     pub last_psr: f32,
 
     // thread-safe FFT objects containing precomputed parameters for this input data size.
-    fft: Arc<dyn FFT<f32>>,
-    inv_fft: Arc<dyn FFT<f32>>,
+    fft: Arc<dyn Fft<f32>>,
+    inv_fft: Arc<dyn Fft<f32>>,
 }
 
 pub struct MosseTrackerSettings {
@@ -183,13 +183,13 @@ pub struct MosseTrackerSettings {
 impl MosseTracker {
     pub fn new(settings: &MosseTrackerSettings) -> MosseTracker {
         // parameterize the FFT objects
-        let mut planner = FFTplanner::new(false);
-        let mut inv_planner = FFTplanner::new(true);
+        let mut planner = FftPlanner::new();
+        let mut inv_planner = FftPlanner::new();
 
         // NOTE: we initialize the FFTs based on the size of the window
         let length = (settings.window_size * settings.window_size) as usize;
-        let fft = planner.plan_fft(length);
-        let inv_fft = inv_planner.plan_fft(length);
+        let fft = planner.plan_fft_forward(length);
+        let inv_fft = inv_planner.plan_fft_inverse(length);
 
         // initialize the filter and its top and bottom parts with zeroes.
         let filter = vec![Complex::zero(); length];
@@ -198,14 +198,12 @@ impl MosseTracker {
 
         // initialize the target output map (G), with a compact Gaussian peak centered on the target object.
         // In the Bolme paper, this map is called gi.
-        let mut tmp: Vec<Complex<f32>> = build_target(settings.window_size, settings.window_size)
-            .into_iter()
-            .map(|p| Complex::new(p as f32, 0.0))
-            .collect();
-
-        // Compute the FFT of the target map (the input vector is consumed!)
-        let mut target: Vec<Complex<f32>> = vec![Complex::zero(); tmp.len()];
-        fft.process(&mut tmp, &mut target);
+        let mut target: Vec<Complex<f32>> =
+            build_target(settings.window_size, settings.window_size)
+                .into_iter()
+                .map(|p| Complex::new(p as f32, 0.0))
+                .collect();
+        fft.process(&mut target);
 
         return MosseTracker {
             filter: filter,
@@ -225,16 +223,15 @@ impl MosseTracker {
     }
 
     fn compute_2dfft(&self, imagedata: Vec<f32>) -> Vec<Complex<f32>> {
-        let mut output: Vec<Complex<f32>> = vec![Complex::zero(); imagedata.len()];
-        let mut input: Vec<Complex<f32>> = imagedata
+        let mut buffer: Vec<Complex<f32>> = imagedata
             .into_iter()
             .map(|p| Complex::new(p as f32, 0.0))
             .collect();
 
         // fft.process() CONSUMES the input buffer as scratch space, make sure it is not reused
-        self.fft.process(&mut input, &mut output);
+        self.fft.process(&mut buffer);
 
-        return output;
+        return buffer;
     }
 
     // Train a new filter on the first frame in which the object occurs
@@ -373,13 +370,11 @@ impl MosseTracker {
         let Fi = self.compute_2dfft(vectorized);
 
         // elementwise multiplication of F with filter H gives Gi
-        let mut Gi: Vec<Complex<f32>> = Fi.iter().zip(&self.filter).map(|(a, b)| a * b).collect();
-
-        // get the filtered image out of fourier space ( inv_FFT(Gi) = gi )
-        let mut corr_map_gi: Vec<Complex<f32>> = vec![Complex::zero(); Gi.len()];
+        let mut corr_map_gi: Vec<Complex<f32>> =
+            Fi.iter().zip(&self.filter).map(|(a, b)| a * b).collect();
 
         // NOTE: Gi is garbage after this call
-        self.inv_fft.process(&mut Gi, &mut corr_map_gi);
+        self.inv_fft.process(&mut corr_map_gi);
 
         // find the max value of the filtered image 'gi', along with the position of the maximum
         let (maxind, max_complex) = corr_map_gi
@@ -493,9 +488,8 @@ impl MosseTracker {
     ) {
         // get the filter out of fourier space
         // NOTE: input is garbage after this call to inv_fft.process(), so we clone the filter first.
-        let mut h: Vec<Complex<f32>> = vec![Complex::zero(); self.filter.len()];
-        let mut filter_copy = self.filter.clone();
-        self.inv_fft.process(&mut filter_copy, &mut h);
+        let mut h = self.filter.clone();
+        self.inv_fft.process(&mut h);
 
         // turn the real and imaginary values of the filter into separate grayscale images
         let realfilter = h.iter().map(|c| c.re).collect();
