@@ -97,8 +97,14 @@ impl MultiMosseTracker {
         let mut new_tracker = MosseTracker::new(&self.settings);
         new_tracker.train(frame, coords);
 
-        // add the tracker to the map
-        self.trackers.push((id, 0, new_tracker));
+        match self.trackers.iter_mut().find(|tracker| tracker.0 == id) {
+            Some(tuple) => {
+                tuple.1 = 0;
+                tuple.2 = new_tracker;
+            }
+            // add the tracker to the map
+            _ => self.trackers.push((id, 0, new_tracker)),
+        };
     }
 
     pub fn track(&mut self, frame: &GrayImage) -> Vec<(Identifier, Prediction)> {
@@ -642,6 +648,54 @@ mod tests {
         assert_eq!(
             Complex::new(1.0, -3.0) * Complex::new(2.0, 5.0),
             Complex::new(17.0, -1.0)
+        );
+    }
+
+    #[test]
+    fn unique_identifier() {
+        let width = 64;
+        let height = 64;
+        let frame = GrayImage::new(width, height);
+        let settings = MosseTrackerSettings {
+            window_size: 16,
+            width,
+            height,
+            regularization: 0.001,
+            learning_rate: 0.05,
+            psr_threshold: 7.0,
+        };
+        let mut multi_tracker = MultiMosseTracker::new(settings, 3);
+        assert_eq!(multi_tracker.size(), 0);
+        multi_tracker.add_target(0, (0, 0), &frame);
+
+        assert_eq!(multi_tracker.size(), 1);
+        assert_eq!(
+            multi_tracker
+                .trackers
+                .iter()
+                .find(|t| t.0 == 0)
+                .unwrap()
+                .2
+                .current_target_center,
+            (0, 0)
+        );
+
+        multi_tracker.add_target(1, (10, 0), &frame);
+
+        assert_eq!(multi_tracker.size(), 2);
+
+        multi_tracker.add_target(0, (10, 0), &frame);
+
+        assert_eq!(multi_tracker.size(), 2);
+        assert_eq!(
+            multi_tracker
+                .trackers
+                .iter()
+                .find(|t| t.0 == 0)
+                .unwrap()
+                .2
+                .current_target_center,
+            (10, 0)
         );
     }
 }
