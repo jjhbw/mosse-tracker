@@ -106,8 +106,8 @@ fn main() {
             draw_text_mut(
                 &mut img_copy,
                 Rgba([125u8, 255u8, 0u8, 0u8]),
-                pred.location.0 - (window_size / 2),
-                pred.location.1 - (window_size / 2),
+                (pred.location.0 - (window_size / 2)).try_into().unwrap(),
+                (pred.location.1 - (window_size / 2)).try_into().unwrap(),
                 Scale::uniform(FONT_SCALE),
                 &font,
                 &format!("#{}", obj_id),
@@ -117,8 +117,8 @@ fn main() {
             draw_text_mut(
                 &mut img_copy,
                 color,
-                pred.location.0 - (window_size / 2),
-                pred.location.1 - (window_size / 2) + FONT_SCALE as u32,
+                (pred.location.0 - (window_size / 2)).try_into().unwrap(),
+                (pred.location.1 - (window_size / 2) + FONT_SCALE as u32).try_into().unwrap(),
                 Scale::uniform(FONT_SCALE),
                 &font,
                 &format!("PSR: {:.2}", pred.psr),
