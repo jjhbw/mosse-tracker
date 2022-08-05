@@ -213,15 +213,15 @@ impl MosseTracker {
         fft.process(&mut target);
 
         return MosseTracker {
-            filter: filter,
+            filter,
             last_top: top,
             last_bottom: bottom,
             last_psr: 0.0,
             eta: settings.learning_rate,
             regularization: settings.regularization,
-            target: target,
-            fft: fft,
-            inv_fft: inv_fft,
+            target,
+            fft,
+            inv_fft,
             frame_width: settings.width,
             frame_height: settings.height,
             window_size: settings.window_size,
