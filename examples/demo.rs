@@ -42,14 +42,8 @@ fn main() {
 
     // coordinates of the target objects to track in the intial frame
     let target_coords = vec![
-        (143, 766),
-        (232, 653),
-        (291, 731),
-        (1298, 664),
-        (479, 642),
-        (574, 629),
-        (666, 627),
-        (762, 609),
+        (200, 420),
+        (560, 300)
     ];
 
     // Add all the targets  on the first image to the multitracker
