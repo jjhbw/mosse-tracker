@@ -50,7 +50,7 @@ fn main() {
     let first_img = first.to_luma8();
     for (i, coords) in target_coords.into_iter().enumerate() {
         let start = Instant::now();
-        multi_tracker.add_target(i as u32, coords, &first_img);
+        multi_tracker.add_or_replace_target(i as u32, coords, &first_img);
         println!(
             "Added object on initial frame to multi-tracker in {} ms",
             start.elapsed().as_millis()

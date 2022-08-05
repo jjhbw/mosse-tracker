@@ -90,8 +90,9 @@ impl MultiMosseTracker {
         };
     }
 
-    pub fn add_target(&mut self, id: Identifier, coords: (u32, u32), frame: &GrayImage) {
-        // Or do this in the caller?
+    pub fn add_or_replace_target(&mut self, id: Identifier, coords: (u32, u32), frame: &GrayImage) {
+        // Add a target by specifying its coords and a new ID.
+        // Specify an existing ID to replace an existing tracked target.
 
         // create a new tracker for this target and train it
         let mut new_tracker = MosseTracker::new(&self.settings);
@@ -666,7 +667,7 @@ mod tests {
         };
         let mut multi_tracker = MultiMosseTracker::new(settings, 3);
         assert_eq!(multi_tracker.size(), 0);
-        multi_tracker.add_target(0, (0, 0), &frame);
+        multi_tracker.add_or_replace_target(0, (0, 0), &frame);
 
         assert_eq!(multi_tracker.size(), 1);
         assert_eq!(
@@ -680,11 +681,11 @@ mod tests {
             (0, 0)
         );
 
-        multi_tracker.add_target(1, (10, 0), &frame);
+        multi_tracker.add_or_replace_target(1, (10, 0), &frame);
 
         assert_eq!(multi_tracker.size(), 2);
 
-        multi_tracker.add_target(0, (10, 0), &frame);
+        multi_tracker.add_or_replace_target(0, (10, 0), &frame);
 
         assert_eq!(multi_tracker.size(), 2);
         assert_eq!(
