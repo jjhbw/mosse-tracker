@@ -3,6 +3,9 @@ name = "mosse"
 version = "0.1.0"
 edition = "2021"
 authors = ["Jurriaan Barkey Wolf <jjhbarkeywolf@gmail.com>"]
+description = "A proof-of-concept implementation of the MOSSE video object tracking algorithm by Bolme et al."
+repository = "https://github.com/jjhbw/mosse-tracker"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
