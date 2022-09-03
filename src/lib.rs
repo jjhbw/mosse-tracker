@@ -12,6 +12,9 @@ use std::cmp::Ordering;
 use std::f32;
 use std::sync::Arc;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 // TODO: use constant declarations wherever possible
 // TODO: refactor the unwrap statement into match statements wherever we can't be certain a result exists.
 // TODO: behaviour at edge of frame: target may not leave frame, but filter will screw up anyway due to cropping. Move target coord freely within template?
