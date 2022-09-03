@@ -1,5 +1,5 @@
 use crate::{MosseTrackerSettings, MultiMosseTracker};
-use image::{DynamicImage, Rgba};
+use image::{Rgba};
 use imageproc::drawing::{draw_cross_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
 use rusttype::{Font, Scale};
@@ -40,7 +40,7 @@ impl MultiMosseTrackerJS {
 
     #[wasm_bindgen]
     pub fn track(&mut self, img_data: &[u8]) -> Vec<u8> {
-        let mut image =
+        let image =
             image::load_from_memory_with_format(img_data, image::ImageFormat::Png).unwrap();
         let predictions = self.tracker.track(&image.to_luma8());
         let mut img_copy = image.to_rgba8();
