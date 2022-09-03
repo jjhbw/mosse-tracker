@@ -39,11 +39,11 @@
     </div>
 
     <script type="module">
-      var video = document.querySelector("#videoElement");
-      var canvas = document.createElement("canvas");
-      var img = document.getElementById("img");
+      const video = document.querySelector("#videoElement");
+      const canvas = document.createElement("canvas");
+      const img = document.getElementById("img");
       img.onclick = updatePosition;
-      var tracker = null;
+      let tracker = null;
 
       import init, { MultiMosseTrackerJS } from "./pkg/mosse.js";
       init().then(async () => {
@@ -60,8 +60,8 @@
       });
 
       setInterval(async function () {
-        var width = video.videoWidth;
-        var height = video.videoHeight;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
         if (width && height) {
           if (tracker == null) {
             tracker = new MultiMosseTrackerJS(
@@ -72,16 +72,16 @@
             canvas.height = height;
           }
 
-          var ctx = canvas.getContext("2d");
+          const ctx = canvas.getContext("2d");
           ctx.drawImage(video, 0, 0, width, height);
 
           const base64 = canvas.toDataURL("image/png");
           const blob = await (await fetch(base64)).blob();
           let frame = new Uint8Array(await blob.arrayBuffer());
-          var tracked_frame = tracker.track(frame);
+          const tracked_frame = tracker.track(frame);
 
-          var tracked_blob = new Blob([tracked_frame], { type: "image/png" });
-          var url = URL.createObjectURL(tracked_blob);
+          const tracked_blob = new Blob([tracked_frame], { type: "image/png" });
+          const url = URL.createObjectURL(tracked_blob);
           img.src = url;
         } else {
         }
