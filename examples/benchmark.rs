@@ -10,24 +10,37 @@ use imageproc::rect::Rect;
 use mosse::{MosseTrackerSettings, MultiMosseTracker};
 use rusttype::{Font, Scale};
 use std::env;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 fn main() {
     // Collect all elements in the iterator that contains the command line arguments
     let args: Vec<String> = env::args().collect();
 
-    // remove the first element from the list of arguments, which is the call to the binary
-    let inputfiles = &args[1..];
-
-    if inputfiles.len() == 0 {
-        panic!("no input files specified");
+    // The first element from the list of arguments is the call to the binary
+    if args.len() != 2 {
+        panic!(
+            "USAGE: `cargo run --release --example benchmark FOLDER`\n\
+            where FOLDER is an extracted dataset from http://cvlab.hanyang.ac.kr/tracker_benchmark/datasets.html"
+        );
     }
+    let folder_path = Path::new(&args[1]);
+
+    let mut inputfiles: Vec<PathBuf> = std::fs::read_dir(folder_path.join("img"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect();
+    inputfiles.sort();
+
     let mut images = inputfiles.iter().map(|path| image::open(path).unwrap());
     let first = images.next().unwrap();
 
     // initialize a new model
     let (width, height) = first.to_rgb8().dimensions();
-    let window_size = 64; //size of the tracking window
+    // FIXME: take the window size from the first line of folder/groundtruth_rect.txt, and make it not-square.
+    let window_size = 64; // size of the tracking window (this is currently used as both the width and the height)
     let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
     let settings = MosseTrackerSettings {
         window_size: window_size,
@@ -40,17 +53,25 @@ fn main() {
     let desperation_threshold = 3; // how many frames the tracker should try to re-acquire the target until we consider it failed
     let mut multi_tracker = MultiMosseTracker::new(settings, desperation_threshold);
 
+    // FIXME: some examples have multiple targets:
+    // "When there exist multiple targets each target is identified as dot+id_number (e.g. Jogging.1 and Jogging.2)."
+    let groundtruth_file = File::open(folder_path.join("groundtruth_rect.txt")).unwrap();
+    let first_line = BufReader::new(groundtruth_file)
+        .lines()
+        .next()
+        .unwrap()
+        .unwrap();
+
+    let [x, y, w, h]: [u32; 4] = first_line
+        .split(|c| c == ',' || c == '\t')
+        .map(|n| u32::from_str_radix(n, 10).unwrap())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+
     // coordinates of the target objects to track in the intial frame
-    let target_coords = vec![
-        (143, 766),
-        (232, 653),
-        (291, 731),
-        (1298, 664),
-        (479, 642),
-        (574, 629),
-        (666, 627),
-        (762, 609),
-    ];
+    // FIXME: actually use width and height for more than just finding the center
+    let target_coords = vec![(x + w / 2, y + h / 2)];
 
     // Add all the targets  on the first image to the multitracker
     let first_img = first.to_luma8();
@@ -150,7 +171,7 @@ fn main() {
         }
 
         img_copy
-            .save(format!("predicted_image_{}.png", img_id))
+            .save(folder_path.join(format!("predicted_image_{}.png", img_id)))
             .unwrap();
 
         // Break off multi tracker if all targets lost
@@ -159,4 +180,5 @@ fn main() {
             break;
         }
     }
+    // FIXME: parse the rest of `groundtruth_rect.txt` and calculate a score.
 }
