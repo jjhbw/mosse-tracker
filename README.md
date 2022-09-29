@@ -32,3 +32,45 @@ python3 -m http.server
 ```
 
 Open [http://localhost:8000](http://localhost:8000) and allow webcam access.
+
+### Run against object tracking benchmark dataset
+
+First, download some example sequences from the [Visual Tracker Benchmark](http://cvlab.hanyang.ac.kr/tracker_benchmark/datasets.html) website and unpack them into the `testdata` directory. This is dataset is also known as TB-50 TB-100, or OTB-2015.
+
+You can download the datasets like this (if you have [pup](https://github.com/ericchiang/pup) installed and quite a lot of patience):
+
+```bash
+# Download the zipped example sequences.
+curl http://cvlab.hanyang.ac.kr/tracker_benchmark/datasets.html |
+    pup 'table.seqtable:nth-child(5) > tbody:nth-child(1) > tr > td > a attr{href}' |
+    sed s:seq/:: |
+    while read zipfile; do
+        echo $zipfile;
+        if [ -f "testdata/$zipfile" ] && unzip -t "testdata/$zipfile"; then
+            echo "already downloaded $zipfile"
+            continue
+        fi
+        curl "http://cvlab.hanyang.ac.kr/tracker_benchmark/seq/$zipfile" --output "testdata/$zipfile";
+    done
+
+# Extract the sequence from each zip file.
+(
+    cd testdata
+    for zip in *.zip; do
+        unzip -f $zip || break
+    done
+)
+
+# Run the benchmark example against each sequence.
+for dir in ./testdata/*/; do
+    echo $dir
+    if [ ! -d "$dir/img" ]; then
+        echo "$dir does not contain an img directory. Skipping."
+        continue
+    fi
+
+    cargo run --release --example benchmark $dir
+done
+```
+
+Note that MOSSE does not handle occlusion, so we expect to lose track in sequences with the OCC attribute.
