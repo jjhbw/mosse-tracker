@@ -190,6 +190,7 @@ pub struct MosseTrackerSettings {
     pub regularization: f32,
 }
 
+#[allow(non_snake_case)]
 impl MosseTracker {
     pub fn new(settings: &MosseTrackerSettings) -> MosseTracker {
         // parameterize the FFT objects
