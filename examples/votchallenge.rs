@@ -85,7 +85,7 @@ mod trax_protocol {
 
     impl FromStr for TraxMessageFromClient {
         // we could probably use anyhow::Error or here
-        type Err = String;
+        type Err = anyhow::Error;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let s = s.strip_prefix("@@TRAX:").unwrap();
@@ -103,7 +103,7 @@ mod trax_protocol {
                         region: region.to_string(),
                     }
                 }
-                _ => panic!("don't understand message: {s:?}"),
+                _ => anyhow::bail!("don't understand message: {s:?}"),
             };
             Ok(res)
         }
