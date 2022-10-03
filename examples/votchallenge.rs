@@ -7,7 +7,7 @@ use trax_protocol::{
 // FIXME: split this out into its own crate?
 #[allow(dead_code)]
 mod trax_protocol {
-    use std::{fmt::Display, str::FromStr};
+    use std::{fmt::Display, path::PathBuf, str::FromStr};
 
     /// messages defined by https://trax.readthedocs.io/en/latest/protocol.html#protocol-messages-and-states
     pub enum TraxMessageFromServer {
@@ -55,17 +55,10 @@ mod trax_protocol {
             }
         }
     }
+    #[derive(Debug)]
     pub enum TraxMessageFromClient {
-        Initialize {
-            // FIXME: make a type for this
-            image: String,
-            // FIXME: make a type for this
-            region: String,
-        },
-        Frame {
-            // FIXME: make a type for this
-            images: Vec<String>,
-        },
+        Initialize { image: Image, region: Region },
+        Frame { images: Vec<Image> },
         Quit,
     }
 
@@ -74,19 +67,16 @@ mod trax_protocol {
         type Err = anyhow::Error;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let s = s.strip_prefix("@@TRAX:").unwrap();
+            let s = s.trim_end().strip_prefix("@@TRAX:").unwrap();
             let (type_, rest) = s.split_once(' ').unwrap();
             let res = match type_ {
                 "initialize" => {
-                    let (image, region) = s.split_once(' ').unwrap();
                     // FIXME:
-                    // * Make proper enums for image and region
                     // * strip out quotes and whitespace properly (tempdir might have spaces in on windows?)
-                    // * strip out file:// from image path
-                    // * parse region into a rectangle or something
+                    let (image, region) = rest.split_once(' ').unwrap();
                     Self::Initialize {
-                        image: image.to_string(),
-                        region: region.to_string(),
+                        image: Image::from_str(strip_quotes_from_ends(image)?)?,
+                        region: Region::from_str(strip_quotes_from_ends(region)?)?,
                     }
                 }
                 _ => anyhow::bail!("don't understand message: {s:?}"),
@@ -95,8 +85,17 @@ mod trax_protocol {
         }
     }
 
-    /// In practice, we only plan to implement the `Path` image type in our server.
+    // I feel like there should be something like this in the standard library somewhere, but this will do for now.
+    fn strip_quotes_from_ends(s: &str) -> anyhow::Result<&str> {
+        s.strip_prefix('"')
+            .ok_or(anyhow::anyhow!("no leading quote on {s:?}"))?
+            .strip_suffix('"')
+            .ok_or(anyhow::anyhow!("no trailing quote on {s:?}"))
+    }
+
+    #[derive(Debug, PartialEq)]
     pub enum ImageType {
+        /// In practice, we only plan to implement the `Path` image type in our server.
         Path,
         Memory,
         Data,
@@ -104,11 +103,34 @@ mod trax_protocol {
     }
     impl Display for ImageType {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            assert_eq!(
+                self,
+                &ImageType::Path,
+                "only `path` image type is supported for now",
+            );
             match self {
                 ImageType::Path => write!(f, "path"),
                 ImageType::Memory => write!(f, "memory"),
                 ImageType::Data => write!(f, "data"),
                 ImageType::Url => write!(f, "url"),
+            }
+        }
+    }
+
+    // In practice, we only plan to implement the `Path` image type in our server, otherwise I would have made this an enum as well.
+    #[derive(Debug)]
+    pub struct Image {
+        path: PathBuf,
+    }
+    impl FromStr for Image {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            if let Some(rest) = s.strip_prefix("file://") {
+                let path = PathBuf::from(rest);
+                Ok(Self { path })
+            } else {
+                anyhow::bail!("could not decode path from {s}")
             }
         }
     }
@@ -124,6 +146,33 @@ mod trax_protocol {
                 RegionType::Rectangle => write!(f, "rectangle"),
                 RegionType::Polygon => write!(f, "polygon"),
             }
+        }
+    }
+
+    // In practice, we only plan to implement the `Rectangle` region type in our server, otherwise I would have made this an enum as well.
+    #[derive(Debug)]
+    pub struct Region {
+        top: f64,
+        left: f64,
+        height: f64,
+        width: f64,
+    }
+    impl FromStr for Region {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let [top, left, height, width]: [f64; 4] = s
+                .split(|c| c == ',' || c == '\t')
+                .map(|n| f64::from_str(n))
+                .collect::<Result<Vec<_>, _>>()?
+                .try_into()
+                .map_err(|v| anyhow::anyhow!("{v:?} could not be coerced into a [f64; 4]"))?;
+            Ok(Self {
+                top,
+                left,
+                height,
+                width,
+            })
         }
     }
 
@@ -171,6 +220,7 @@ impl MosseTraxServer {
 
         for line in stdin().lines() {
             let line = line.unwrap();
+            log::trace!("handling line: {line:?}");
             let message: TraxMessageFromClient = line.parse().unwrap();
             let response = self.process_message(message);
             println!("{}", response);
@@ -189,7 +239,15 @@ impl MosseTraxServer {
     }
 
     fn process_message(&mut self, message: TraxMessageFromClient) -> TraxMessageFromServer {
-        todo!()
+        match message {
+            TraxMessageFromClient::Initialize { image, region } => {
+                todo!("handle Initialize {{ image: {image:?}, region: {region:?} }}")
+            }
+            TraxMessageFromClient::Frame { images } => {
+                todo!("handle Frame {{ images: {images:?} }}")
+            }
+            TraxMessageFromClient::Quit => panic!("client sent quit message"),
+        }
     }
 }
 
