@@ -1,2 +1,7 @@
 target/
 .DS_Store
+
+#FIXME: find a better place for these things than the root of the repo?
+.python-version
+sequences/
+venv/
