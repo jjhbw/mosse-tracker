@@ -169,24 +169,17 @@ mod trax_protocol {
 
 struct MosseTraxServer {
     state: ServerState,
-    log_file: File,
 }
 impl Default for MosseTraxServer {
     fn default() -> Self {
         Self {
             state: ServerState::Introduction,
-            log_file: File::options()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open("MosseRust.log")
-                .unwrap(),
         }
     }
 }
 impl MosseTraxServer {
     fn run(mut self) {
-        writeln!(self.log_file, "starting run").unwrap();
+        log::info!("starting run");
 
         println!("{}", self.hello());
 
@@ -215,6 +208,8 @@ impl MosseTraxServer {
 }
 
 fn main() {
+    env_logger::init();
+
     let server = MosseTraxServer::default();
     server.run();
 }
