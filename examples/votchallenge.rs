@@ -1,18 +1,4 @@
-extern crate image;
-extern crate imageproc;
-extern crate mosse;
-extern crate rusttype;
-extern crate time;
-
-use image::Rgba;
-use imageproc::drawing::{draw_cross_mut, draw_hollow_rect_mut, draw_text_mut};
-use imageproc::rect::Rect;
-use mosse::{MosseTrackerSettings, MultiMosseTracker};
-use rusttype::{Font, Scale};
-use std::env;
-use std::fs::File;
-use std::io::{stdin, Write};
-use std::time::Instant;
+use std::io::stdin;
 use trax_protocol::{
     ChannelType, ImageType, RegionType, ServerState, TraxMessageFromClient, TraxMessageFromServer,
 };
