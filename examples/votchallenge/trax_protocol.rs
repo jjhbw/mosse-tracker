@@ -3,6 +3,8 @@
 // FIXME: split this out into its own crate?
 use std::{fmt::Display, path::PathBuf, str::FromStr};
 
+use image::{DynamicImage, ImageError};
+
 /// messages defined by https://trax.readthedocs.io/en/latest/protocol.html#protocol-messages-and-states
 pub enum TraxMessageFromServer {
     Hello {
@@ -20,8 +22,7 @@ pub enum TraxMessageFromServer {
         channels: Vec<ChannelType>,
     },
     State {
-        // FIXME: make a type for this
-        region: String,
+        region: Region,
     },
     Quit,
 }
@@ -44,7 +45,9 @@ impl Display for TraxMessageFromServer {
                     .join(",");
                 write!(f, "hello trax.version={version} trax.name={name} trax.identifier={identifier} trax.image={image} trax.region={region} trax.channels={channels}")
             }
-            TraxMessageFromServer::State { region } => todo!(),
+            TraxMessageFromServer::State { region } => {
+                write!(f, "state {region}")
+            }
             TraxMessageFromServer::Quit => todo!(),
         }
     }
@@ -128,6 +131,11 @@ impl FromStr for Image {
         }
     }
 }
+impl Image {
+    pub fn open(&self) -> Result<DynamicImage, ImageError> {
+        image::open(&self.path)
+    }
+}
 
 /// In practice, we only plan to implement the `Rectangle` region type in our server.
 pub enum RegionType {
@@ -169,6 +177,17 @@ impl FromStr for Region {
         })
     }
 }
+impl Display for Region {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self {
+            top,
+            left,
+            height,
+            width,
+        } = self;
+        write!(f, "\"{top:.3},{left:.3},{height:.3},{width:.3}\"")
+    }
+}
 
 /// In practice, we only plan to implement a single `Color` channel type in our server.
 pub enum ChannelType {
@@ -184,13 +203,4 @@ impl Display for ChannelType {
             ChannelType::InfraRed => write!(f, "ir"),
         }
     }
-}
-
-// There would also be a ClientState, but we're not planning to implement the client.
-
-pub enum ServerState {
-    Introduction,
-    Initialization,
-    Reporting,
-    Termination,
 }

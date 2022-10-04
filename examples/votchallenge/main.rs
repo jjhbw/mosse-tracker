@@ -1,9 +1,20 @@
+mod trax_protocol;
+
 use std::io::stdin;
-use trax_protocol::{
-    ChannelType, ImageType, RegionType, ServerState, TraxMessageFromClient, TraxMessageFromServer,
+
+use mosse::{MosseTrackerSettings, MultiMosseTracker};
+
+use crate::trax_protocol::{
+    ChannelType, Image, ImageType, Region, RegionType, TraxMessageFromClient, TraxMessageFromServer,
 };
 
-mod trax_protocol;
+#[derive(Debug)]
+pub enum ServerState {
+    Introduction,
+    Initialization,
+    Reporting { multi_tracker: MultiMosseTracker },
+    Termination,
+}
 
 struct MosseTraxServer {
     state: ServerState,
@@ -43,15 +54,40 @@ impl MosseTraxServer {
 
     fn process_message(&mut self, message: TraxMessageFromClient) -> TraxMessageFromServer {
         match message {
-            TraxMessageFromClient::Initialize { image, region } => {
-                todo!("handle Initialize {{ image: {image:?}, region: {region:?} }}")
-            }
+            TraxMessageFromClient::Initialize { image, region } => self.process_init(image, region),
             TraxMessageFromClient::Frame { images } => {
                 todo!("handle Frame {{ images: {images:?} }}")
             }
             // FIXME: return Result from this function, and make the outer loop print "quit" and exit on error?
             TraxMessageFromClient::Quit => panic!("client sent quit message"),
         }
+    }
+    fn process_init(&mut self, image: Image, region: Region) -> TraxMessageFromServer {
+        assert!(matches!(self.state, ServerState::Introduction));
+
+        let first = image.open().unwrap();
+
+        // initialize a new model
+        let (width, height) = first.to_rgb8().dimensions();
+        let window_size = 64; //size of the tracking window
+        let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
+        let settings = MosseTrackerSettings {
+            window_size: window_size,
+            width,
+            height,
+            regularization: 0.001,
+            learning_rate: 0.05,
+            psr_threshold: psr_thresh,
+        };
+        let desperation_threshold = 3; // how many frames the tracker should try to re-acquire the target until we consider it failed
+        let multi_tracker = MultiMosseTracker::new(settings, desperation_threshold);
+
+        // FIXME: make this function return the new state, more like a redux store?
+        self.state = ServerState::Reporting { multi_tracker };
+
+        // if we were being honest, we would return the square region that we've
+        // actually fed into the model, but it probably doesn't matter that much.
+        TraxMessageFromServer::State { region }
     }
 }
 
