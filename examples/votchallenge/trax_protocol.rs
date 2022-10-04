@@ -76,6 +76,13 @@ impl FromStr for TraxMessageFromClient {
                     region: Region::from_str(strip_quotes_from_ends(region)?)?,
                 }
             }
+            "frame" => Self::Frame {
+                // FIXME: https://trax.readthedocs.io/en/latest/protocol.html#protocol-messages-and-states
+                // says "or multiple images", which is why I made it a Vec, but I'm not sure how this
+                // should be handled by the server (split it and treat it as if it were mutiple "frame" messages?)
+                // so it might be better to flatten out the Vec<Image> into a single Image.
+                images: vec![Image::from_str(strip_quotes_from_ends(rest)?)?],
+            },
             _ => anyhow::bail!("don't understand message: {s:?}"),
         };
         Ok(res)
@@ -152,12 +159,12 @@ impl Display for RegionType {
 }
 
 // In practice, we only plan to implement the `Rectangle` region type in our server, otherwise I would have made this an enum as well.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Region {
-    top: f64,
-    left: f64,
-    height: f64,
-    width: f64,
+    pub top: f64,
+    pub left: f64,
+    pub height: f64,
+    pub width: f64,
 }
 impl FromStr for Region {
     type Err = anyhow::Error;
