@@ -19,7 +19,7 @@ impl MosseTraxServer {
     fn run(mut self) {
         log::info!("starting run");
 
-        println!("{}", self.hello());
+        println!("{}", self.make_hello_message());
 
         for line in stdin().lines() {
             let line = line.unwrap();
@@ -30,7 +30,7 @@ impl MosseTraxServer {
         }
     }
 
-    fn hello(&mut self) -> TraxMessageFromServer {
+    fn make_hello_message(&mut self) -> TraxMessageFromServer {
         TraxMessageFromServer::Hello {
             version: 1,
             name: "MosseRust".to_string(),
