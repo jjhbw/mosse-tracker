@@ -49,6 +49,7 @@ impl MosseTraxServer {
             TraxMessageFromClient::Frame { images } => {
                 todo!("handle Frame {{ images: {images:?} }}")
             }
+            // FIXME: return Result from this function, and make the outer loop print "quit" and exit on error?
             TraxMessageFromClient::Quit => panic!("client sent quit message"),
         }
     }
