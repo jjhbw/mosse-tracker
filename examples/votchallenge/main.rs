@@ -80,7 +80,7 @@ impl MosseTraxServer {
             learning_rate: 0.05,
             psr_threshold: psr_thresh,
         };
-        let desperation_threshold = 3; // how many frames the tracker should try to re-acquire the target until we consider it failed
+        let desperation_threshold = 300000; // how many frames the tracker should try to re-acquire the target until we consider it failed
 
         // FIXME: can I get away with a single MosseTracker here?
         let mut multi_tracker = MultiMosseTracker::new(settings, desperation_threshold);
