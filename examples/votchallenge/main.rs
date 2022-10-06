@@ -2,8 +2,6 @@ mod trax_protocol;
 
 use std::io::stdin;
 
-use image::Rgba;
-use imageproc::rect::Rect;
 use mosse::{MosseTrackerSettings, MultiMosseTracker};
 
 use crate::trax_protocol::{
@@ -140,18 +138,19 @@ impl MosseTraxServer {
             width: first_region.width,
         };
 
-        let mut img_copy = frame.clone();
-        imageproc::drawing::draw_hollow_rect_mut(
-            &mut img_copy,
-            Rect::at(region.x as i32, region.y as i32)
-                .of_size(region.width as u32, region.height as u32),
-            Rgba([125u8, 255u8, 0u8, 0u8]),
-        );
-
-        img_copy
-            .save(images[0].path.with_extension(".predicted.png"))
-            .unwrap();
-
+        #[cfg(debug_assertions)]
+        {
+            let mut img_copy = frame.clone();
+            imageproc::drawing::draw_hollow_rect_mut(
+                &mut img_copy,
+                imageproc::rect::Rect::at(region.x as i32, region.y as i32)
+                    .of_size(region.width as u32, region.height as u32),
+                image::Rgba([125u8, 255u8, 0u8, 0u8]),
+            );
+            img_copy
+                .save(images[0].path.with_extension(".predicted.png"))
+                .unwrap();
+        }
         TraxMessageFromServer::State { region }
     }
 }
