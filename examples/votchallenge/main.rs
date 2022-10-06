@@ -2,6 +2,8 @@ mod trax_protocol;
 
 use std::io::stdin;
 
+use image::Rgba;
+use imageproc::rect::Rect;
 use mosse::{MosseTrackerSettings, MultiMosseTracker};
 
 use crate::trax_protocol::{
@@ -70,7 +72,7 @@ impl MosseTraxServer {
         // initialize a new model
         let (width, height) = first.to_rgb8().dimensions();
         // FIXME: use min(region.width, region.height) here?
-        let window_size = 64; //size of the tracking window
+        let window_size = 128; //size of the tracking window
         let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
         let settings = MosseTrackerSettings {
             window_size: window_size,
@@ -120,7 +122,9 @@ impl MosseTraxServer {
             panic!("received `frame` message when not in the Reporting state")
         };
 
-        let predictions = multi_tracker.track(&images[0].open().unwrap().to_luma8());
+        let frame = &images[0].open().unwrap();
+        let predictions = multi_tracker.track(&frame.to_luma8());
+        assert_eq!(predictions.len(), 1);
         let (_obj_id, pred) = &predictions[0];
 
         let region = Region {
@@ -129,6 +133,18 @@ impl MosseTraxServer {
             height: first_region.height,
             width: first_region.width,
         };
+
+        let mut img_copy = frame.clone();
+        imageproc::drawing::draw_hollow_rect_mut(
+            &mut img_copy,
+            Rect::at(region.top as i32, region.left as i32)
+                .of_size(region.width as u32, region.height as u32),
+            Rgba([125u8, 255u8, 0u8, 0u8]),
+        );
+
+        img_copy
+            .save(images[0].path.with_extension(".predicted.png"))
+            .unwrap();
 
         TraxMessageFromServer::State { region }
     }

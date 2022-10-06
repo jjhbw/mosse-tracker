@@ -124,7 +124,7 @@ impl Display for ImageType {
 // In practice, we only plan to implement the `Path` image type in our server, otherwise I would have made this an enum as well.
 #[derive(Debug)]
 pub struct Image {
-    path: PathBuf,
+    pub path: PathBuf,
 }
 impl FromStr for Image {
     type Err = anyhow::Error;
