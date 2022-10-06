@@ -80,9 +80,10 @@ impl MosseTraxServer {
             learning_rate: 0.05,
             psr_threshold: psr_thresh,
         };
-        let desperation_threshold = 300000; // how many frames the tracker should try to re-acquire the target until we consider it failed
 
-        // FIXME: can I get away with a single MosseTracker here?
+        // FIXME: Could I get away with a single MosseTracker here? This would make things simpler,
+        // but wouldn't change the results of the benchmark.
+        let desperation_threshold = 300000; // how many frames the tracker should try to re-acquire the target until we consider it failed
         let mut multi_tracker = MultiMosseTracker::new(settings, desperation_threshold);
 
         let coords = (
@@ -91,7 +92,6 @@ impl MosseTraxServer {
         );
         multi_tracker.add_or_replace_target(0, coords, &first.to_luma8());
 
-        // FIXME: make this function return the new state, more like a redux store?
         self.state = ServerState::Reporting {
             multi_tracker,
             first_region: region.clone(),
