@@ -128,8 +128,14 @@ impl MosseTraxServer {
         let (_obj_id, pred) = &predictions[0];
 
         let region = Region {
-            x: pred.location.0.saturating_sub(first_region.width as u32) as f64,
-            y: pred.location.1.saturating_sub(first_region.height as u32) as f64,
+            x: pred
+                .location
+                .0
+                .saturating_sub((first_region.width / 2.) as u32) as f64,
+            y: pred
+                .location
+                .1
+                .saturating_sub((first_region.height / 2.) as u32) as f64,
             height: first_region.height,
             width: first_region.width,
         };
