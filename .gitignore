@@ -8,6 +8,8 @@ examples/votchallenge/vot_venv
 examples/votchallenge/results
 examples/votchallenge/sequences
 examples/votchallenge/logs
+examples/votchallenge/analysis
+examples/votchallenge/cache
 
 # config file for `vot` that needs to be hand-edited per machine
 examples/votchallenge/trackers.ini

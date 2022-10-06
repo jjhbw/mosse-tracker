@@ -46,7 +46,21 @@ cd examples/votchallenge && source vot_venv/bin/activate # if you are not alread
 vot test MosseRust
 ```
 
-This only uses a couple of cores, but it will take at least 10 minutes, so go make yourself a cup of tea.
+This only uses a couple of cores, and take around 30 minutes, so go make yourself a cup of tea. You should see output like this:
+
+```
+Downloading sequence dataset "VOT2020" with 60 sequences.
+ Downloading          |███████████████████████████████████████████████████████████████████████████| 100% [02:30<00:00]
+Download completed
+ Loading dataset      |███████████████████████████████████████████████████████████████████████████| 100% [00:00<00:00]
+Loaded workspace in '/Users/alsuren/src/mosse-tracker/examples/votchallenge'
+Found data for 1 trackers
+Evaluating tracker MosseRust
+ MosseRust/baseline   |███████████████████████████████████████████████████████████████████████████| 100% [13:24<00:00]
+ MosseRust/realtime   |███████████████████████████████████████████████████████████████████████████| 100% [13:11<00:00]
+ MosseRust/unsupervis |███████████████████████████████████████████████████████████████████████████| 100% [01:34<00:00]
+Evaluation concluded successfuly
+```
 
 ## Checking your scores
 
@@ -55,3 +69,15 @@ cd examples/votchallenge && source vot_venv/bin/activate # if you are not alread
 
 vot analysis MosseRust
 ```
+
+This is a bit quicker, and will give you something like:
+
+```
+ Loading dataset      |██████████████████████████████████████████████████████████████████████████████████| 100% [00:00<00:00]
+Loaded workspace in '/Users/alsuren/src/mosse-tracker/examples/votchallenge'
+Found data for 1 trackers
+ Running analysis     |██████████████████████████████████████████████████████████████████████████████████| 100% [00:21<00:00]
+Analysis successful, report available as 2022-10-06T22-54-20.997015
+```
+
+You can then open ./analysis/2022-10-06T22-54-20.997015/report.html in your web browser, to view the results.
