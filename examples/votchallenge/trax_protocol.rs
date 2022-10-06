@@ -161,38 +161,38 @@ impl Display for RegionType {
 // In practice, we only plan to implement the `Rectangle` region type in our server, otherwise I would have made this an enum as well.
 #[derive(Debug, Clone)]
 pub struct Region {
-    pub top: f64,
-    pub left: f64,
-    pub height: f64,
+    pub x: f64,
+    pub y: f64,
     pub width: f64,
+    pub height: f64,
 }
 impl FromStr for Region {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let [top, left, height, width]: [f64; 4] = s
+        let [x, y, width, height]: [f64; 4] = s
             .split(|c| c == ',' || c == '\t')
             .map(|n| f64::from_str(n))
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
             .map_err(|v| anyhow::anyhow!("{v:?} could not be coerced into a [f64; 4]"))?;
         Ok(Self {
-            top,
-            left,
-            height,
+            x,
+            y,
             width,
+            height,
         })
     }
 }
 impl Display for Region {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Self {
-            top,
-            left,
-            height,
+            x,
+            y,
             width,
+            height,
         } = self;
-        write!(f, "\"{top:.3},{left:.3},{height:.3},{width:.3}\"")
+        write!(f, "\"{x:.3},{y:.3},{width:.3},{height:.3}\"")
     }
 }
 

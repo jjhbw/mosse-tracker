@@ -88,8 +88,8 @@ impl MosseTraxServer {
         let mut multi_tracker = MultiMosseTracker::new(settings, desperation_threshold);
 
         let coords = (
-            (region.left + region.width / 2.) as u32,
-            (region.top + region.height / 2.) as u32,
+            (region.x + region.width / 2.) as u32,
+            (region.y + region.height / 2.) as u32,
         );
         multi_tracker.add_or_replace_target(0, coords, &first.to_luma8());
 
@@ -128,8 +128,8 @@ impl MosseTraxServer {
         let (_obj_id, pred) = &predictions[0];
 
         let region = Region {
-            top: pred.location.0.saturating_sub(first_region.height as u32) as f64,
-            left: pred.location.1.saturating_sub(first_region.width as u32) as f64,
+            x: pred.location.0.saturating_sub(first_region.width as u32) as f64,
+            y: pred.location.1.saturating_sub(first_region.height as u32) as f64,
             height: first_region.height,
             width: first_region.width,
         };
@@ -137,7 +137,7 @@ impl MosseTraxServer {
         let mut img_copy = frame.clone();
         imageproc::drawing::draw_hollow_rect_mut(
             &mut img_copy,
-            Rect::at(region.top as i32, region.left as i32)
+            Rect::at(region.x as i32, region.y as i32)
                 .of_size(region.width as u32, region.height as u32),
             Rgba([125u8, 255u8, 0u8, 0u8]),
         );
