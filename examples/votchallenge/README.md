@@ -81,3 +81,13 @@ Analysis successful, report available as 2022-10-06T22-54-20.997015
 ```
 
 You can then open ./analysis/2022-10-06T22-54-20.997015/report.html in your web browser, to view the results.
+
+## Rerunning the analysis after making a change
+
+```bash
+cd examples/votchallenge && source vot_venv/bin/activate # if you are not already here
+
+cargo build --release --example=votchallenge
+rm -rf cache/ results/
+vot evaluate MosseRust && vot analysis MosseRust
+```
