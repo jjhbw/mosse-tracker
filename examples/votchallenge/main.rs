@@ -69,9 +69,9 @@ impl MosseTraxServer {
 
         // initialize a new model
         let (width, height) = first.to_rgb8().dimensions();
-        // FIXME: This tracks a square in the middle of target region, so it will be throwing away
-        // information for tall or wide targets.
-        let window_size = f64::min(region.width, region.height) as u32; // size of the tracking window
+        // FIXME: This tracks a square that entirely encloses the target region, so it may fixate
+        // on the background for tall or wide targets.
+        let window_size = f64::max(region.width, region.height) as u32; // size of the tracking window
         let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
         let settings = MosseTrackerSettings {
             window_size: window_size,
