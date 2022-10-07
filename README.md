@@ -32,3 +32,7 @@ python3 -m http.server
 ```
 
 Open [http://localhost:8000](http://localhost:8000) and allow webcam access.
+
+# Evaluate on the votchallenge dataset
+
+See [/examples/votchallenge](/examples/votchallenge). Thanks @alsuren for contributing the necessary code!
