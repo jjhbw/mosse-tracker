@@ -10,6 +10,7 @@ use rustfft::num_traits::Zero;
 use rustfft::{Fft, FftPlanner};
 use std::cmp::Ordering;
 use std::f32;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
@@ -73,6 +74,7 @@ fn preprocess(image: &GrayImage) -> Vec<f32> {
 
 type Identifier = u32;
 
+#[derive(Debug)]
 pub struct MultiMosseTracker {
     // we also store the tracker's numeric ID, and the amount of times it did not make the PSR threshold.
     trackers: Vec<(Identifier, u32, MosseTracker)>,
@@ -181,6 +183,28 @@ pub struct MosseTracker {
     inv_fft: Arc<dyn Fft<f32>>,
 }
 
+impl Debug for MosseTracker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MosseTracker")
+            .field("filter", &self.filter)
+            .field("frame_width", &self.frame_width)
+            .field("frame_height", &self.frame_height)
+            .field("window_size", &self.window_size)
+            .field("current_target_center", &self.current_target_center)
+            .field("target", &self.target)
+            .field("eta", &self.eta)
+            .field("regularization", &self.regularization)
+            .field("last_top", &self.last_top)
+            .field("last_bottom", &self.last_bottom)
+            .field("last_psr", &self.last_psr)
+            // These fields don't implement Debug, so I can't use the #[derive(Debug)] impl.
+            // .field("fft", &self.fft)
+            // .field("inv_fft", &self.inv_fft)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
 pub struct MosseTrackerSettings {
     pub width: u32,
     pub height: u32,
@@ -190,6 +214,7 @@ pub struct MosseTrackerSettings {
     pub regularization: f32,
 }
 
+#[allow(non_snake_case)]
 impl MosseTracker {
     pub fn new(settings: &MosseTrackerSettings) -> MosseTracker {
         // parameterize the FFT objects
