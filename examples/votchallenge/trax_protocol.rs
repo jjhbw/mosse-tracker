@@ -172,7 +172,7 @@ impl FromStr for Region {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let [x, y, width, height]: [f64; 4] = s
             .split(|c| c == ',' || c == '\t')
-            .map(|n| f64::from_str(n))
+            .map(f64::from_str)
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
             .map_err(|v| anyhow::anyhow!("{v:?} could not be coerced into a [f64; 4]"))?;

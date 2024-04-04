@@ -74,7 +74,7 @@ impl MosseTraxServer {
         let window_size = f64::max(region.width, region.height) as u32; // size of the tracking window
         let psr_thresh = 7.0; // how high the psr must be before prediction is considered succesful.
         let settings = MosseTrackerSettings {
-            window_size: window_size,
+            window_size,
             width,
             height,
             regularization: 0.001,

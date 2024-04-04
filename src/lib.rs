@@ -48,13 +48,13 @@ fn preprocess(image: &GrayImage) -> Vec<f32> {
     // normalize to mean = 0 (subtract image-wide mean from each pixel)
     let sum: f32 = prepped.iter().sum();
     let mean: f32 = sum / prepped.len() as f32;
-    prepped.iter_mut().for_each(|p| *p = *p - mean);
+    prepped.iter_mut().for_each(|p| *p -= mean);
 
     // normalize to norm = 1, if possible
     let u: f32 = prepped.iter().map(|a| a * a).sum();
     let norm = u.sqrt();
     if norm != 0.0 {
-        prepped.iter_mut().for_each(|e| *e = *e / norm)
+        prepped.iter_mut().for_each(|e| *e /= norm)
     }
 
     // multiply each pixel by a cosine window
@@ -64,12 +64,12 @@ fn preprocess(image: &GrayImage) -> Vec<f32> {
         for j in 0..height {
             let cww = ((f32::consts::PI * i as f32) / (width - 1) as f32).sin();
             let cwh = ((f32::consts::PI * j as f32) / (height - 1) as f32).sin();
-            prepped[position] = cww.min(cwh) * prepped[position];
+            prepped[position] *= cww.min(cwh);
             position += 1;
         }
     }
 
-    return prepped;
+    prepped
 }
 
 type Identifier = u32;
@@ -88,11 +88,11 @@ pub struct MultiMosseTracker {
 
 impl MultiMosseTracker {
     pub fn new(settings: MosseTrackerSettings, desperation_level: u32) -> MultiMosseTracker {
-        return MultiMosseTracker {
+        MultiMosseTracker {
             trackers: Vec::new(),
-            settings: settings,
-            desperation_level: desperation_level,
-        };
+            settings,
+            desperation_level,
+        }
     }
 
     pub fn add_or_replace_target(&mut self, id: Identifier, coords: (u32, u32), frame: &GrayImage) {
@@ -135,7 +135,7 @@ impl MultiMosseTracker {
         self.trackers
             .retain(|(_id, death_count, _tracker)| death_count < level);
 
-        return predictions;
+        predictions
     }
 
     pub fn dump_filter_reals(&self) -> Vec<GrayImage> {
@@ -236,11 +236,11 @@ impl MosseTracker {
         let mut target: Vec<Complex<f32>> =
             build_target(settings.window_size, settings.window_size)
                 .into_iter()
-                .map(|p| Complex::new(p as f32, 0.0))
+                .map(|p| Complex::new(p, 0.0))
                 .collect();
         fft.process(&mut target);
 
-        return MosseTracker {
+        MosseTracker {
             filter,
             last_top: top,
             last_bottom: bottom,
@@ -254,19 +254,19 @@ impl MosseTracker {
             frame_height: settings.height,
             window_size: settings.window_size,
             current_target_center: (0, 0),
-        };
+        }
     }
 
     fn compute_2dfft(&self, imagedata: Vec<f32>) -> Vec<Complex<f32>> {
         let mut buffer: Vec<Complex<f32>> = imagedata
             .into_iter()
-            .map(|p| Complex::new(p as f32, 0.0))
+            .map(|p| Complex::new(p, 0.0))
             .collect();
 
         // fft.process() CONSUMES the input buffer as scratch space, make sure it is not reused
         self.fft.process(&mut buffer);
 
-        return buffer;
+        buffer
     }
 
     // Train a new filter on the first frame in which the object occurs
@@ -305,14 +305,14 @@ impl MosseTracker {
                     .unwrap();
             }
 
-            return training_frame;
+            training_frame
         });
 
         // build an iterator that produces training frames that have been slightly scaled to various degrees ('zoomed')
         let scaled_frames = [0.8, 0.9, 1.1, 1.2].into_iter().map(|scalefactor| {
             let scale = Projection::scale(scalefactor, scalefactor);
 
-            let scaled_training_frame = warp(&window, &scale, Interpolation::Nearest, Luma([0]));
+            let scaled_training_frame = warp(window, &scale, Interpolation::Nearest, Luma([0]));
 
             #[cfg(debug_assertions)]
             {
@@ -321,7 +321,7 @@ impl MosseTracker {
                     .unwrap();
             }
 
-            return scaled_training_frame;
+            scaled_training_frame
         });
 
         // Chain these iterators together.
@@ -459,10 +459,10 @@ impl MosseTracker {
             max_coord_in_window,
         );
 
-        return Prediction {
+        Prediction {
             location: self.current_target_center,
             psr: self.last_psr,
-        };
+        }
     }
 
     // update the filter
@@ -530,10 +530,10 @@ impl MosseTracker {
         let realfilter = h.iter().map(|c| c.re).collect();
         let imfilter = h.iter().map(|c| c.im).collect();
 
-        return (
+        (
             to_imgbuf(&realfilter, self.window_size, self.window_size),
             to_imgbuf(&imfilter, self.window_size, self.window_size),
-        );
+        )
     }
 }
 
@@ -558,7 +558,7 @@ fn window_crop(
     )
     .to_image();
 
-    return window;
+    window
 }
 
 fn build_target(window_width: u32, window_height: u32) -> Vec<f32> {
@@ -583,7 +583,7 @@ fn build_target(window_width: u32, window_height: u32) -> Vec<f32> {
         }
     }
 
-    return target_gi;
+    target_gi
 }
 
 // function for debugging the shape of the target
@@ -593,7 +593,7 @@ pub fn dump_target(window_width: u32, window_height: u32) -> ImageBuffer<Luma<u8
 
     let normalized = trgt.iter().map(|a| a * 255.0).collect();
 
-    return to_imgbuf(&normalized, window_width, window_height);
+    to_imgbuf(&normalized, window_width, window_height)
 }
 
 fn compute_psr(
@@ -632,9 +632,9 @@ fn compute_psr(
     let sidelobe_size = (predicted.len() - (11 * 11)) as f32;
     let mean_sl = running_sum / sidelobe_size;
     let sd_sl = ((running_sd / sidelobe_size) - (mean_sl * mean_sl)).sqrt();
-    let psr = (max - mean_sl) / sd_sl;
+    
 
-    return psr;
+    (max - mean_sl) / sd_sl
 }
 
 fn index_to_coords(width: u32, index: u32) -> (u32, u32) {
@@ -645,7 +645,7 @@ fn index_to_coords(width: u32, index: u32) -> (u32, u32) {
     // checked sub returns None if overflow occurred, which is also a panicable offense.
     // checked_div returns None if rhs == 0, which would indicate an upstream error (width == 0).
     let y = (index.checked_sub(x).unwrap()).checked_div(width).unwrap();
-    return (x, y);
+    (x, y)
 }
 
 pub fn to_imgbuf(buf: &Vec<f32>, width: u32, height: u32) -> ImageBuffer<Luma<u8>, Vec<u8>> {
@@ -666,7 +666,7 @@ mod tests {
             .enumerate()
             .max_by(|a, b| {
                 // filtered (gi) is still complex at this point, we only care about the real part
-                a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal)
+                a.1.partial_cmp(b.1).unwrap_or(Ordering::Equal)
             })
             .unwrap();
         assert_eq!(maxel, (4usize, &5.0f32));
