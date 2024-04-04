@@ -124,7 +124,9 @@ fn main() {
                 &mut img_copy,
                 color,
                 (pred.location.0 - (window_size / 2)).try_into().unwrap(),
-                (pred.location.1 - (window_size / 2) + FONT_SCALE as u32).try_into().unwrap(),
+                (pred.location.1 - (window_size / 2) + FONT_SCALE as u32)
+                    .try_into()
+                    .unwrap(),
                 Scale::uniform(FONT_SCALE),
                 &font,
                 &format!("PSR: {:.2}", pred.psr),

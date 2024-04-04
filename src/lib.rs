@@ -632,7 +632,6 @@ fn compute_psr(
     let sidelobe_size = (predicted.len() - (11 * 11)) as f32;
     let mean_sl = running_sum / sidelobe_size;
     let sd_sl = ((running_sd / sidelobe_size) - (mean_sl * mean_sl)).sqrt();
-    
 
     (max - mean_sl) / sd_sl
 }
